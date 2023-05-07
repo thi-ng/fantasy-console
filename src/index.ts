@@ -1,5 +1,5 @@
 import { exposeGlobal } from "@thi.ng/expose";
-import { code, MEM, compile, reset, tick } from "./machine";
+import { code, MEM, compile, reset, tick, keyp } from "./machine";
 import FONT_EDIT_SRC from "./font-edit.js?raw";
 
 document.body.appendChild(reset());
@@ -36,20 +36,30 @@ const DEMO1 = compile(
  if (peek(MOUSE_BUTTONS)&2) scrollv(1)
  const x=peek(MOUSEX)
  const y=peek(MOUSEY)
- const r=fitc(dist(x,y,peek(PMOUSEX),peek(PMOUSEY)),0,10,2,15)
+ const r=fitc(dist(x,y,peek(PMOUSEX),peek(PMOUSEY)),0,10,2,8)
  const col=((peek(FRAME)/4)%14)+1
  circle(x,y,r,col,1)
  rect(0,0,WIDTH,7,15,1)
- text(\`\${peek(HOUR)}:\${peek(MINUTE)}:\${peek(SECOND)}\`,0,0,4,0)
- text(\`X: \${x} Y: \${y}\`,50,0,12,0,6)
- if (peek(KEY)==32) text(code(),1,8,12,0,7)
+ text(\`\${pad2(peek(HOUR))}:\${pad2(peek(MINUTE))}:\${pad2(peek(SECOND))}\`,0,0,4,0)
+ text(\`X: \${pad3(x)} Y: \${pad3(y)}\`,50,0,12,0,6)
+ if (keyp("Space")) text(code(),1,8,12,0,7)
 }`
 );
 
 const FONT_EDITOR = compile(FONT_EDIT_SRC);
 
+let PROG = FONT_EDITOR;
+
 const update = () => {
-	tick(FONT_EDITOR);
+	if (keyp("F1")) {
+		PROG = DEMO1;
+		reset();
+	}
+	if (keyp("F2")) {
+		PROG = FONT_EDITOR;
+		reset();
+	}
+	tick(PROG);
 	requestAnimationFrame(update);
 };
 

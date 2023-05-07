@@ -1,4 +1,4 @@
-import type { Fn, Fn0 } from "@thi.ng/api";
+import type { Fn, Fn0, Keys } from "@thi.ng/api";
 
 /*
 STACK
@@ -139,6 +139,62 @@ export const KEY_MAP = {
 	Control: 61,
 	Alt: 62,
 	Meta: 63,
+};
+
+export const INV_KEY_MAP = Object.entries(KEY_MAP).reduce(
+	(acc, [k, v]) => ((acc[v] = <any>k), acc),
+	<Keys<typeof KEY_MAP>[]>[]
+);
+
+export const KEYS_TO_ASCII: Partial<Record<Keys<typeof KEY_MAP>, number>> = {
+	Digit0: 48,
+	Digit1: 49,
+	Digit2: 50,
+	Digit3: 51,
+	Digit4: 52,
+	Digit5: 53,
+	Digit6: 54,
+	Digit7: 55,
+	Digit8: 56,
+	Digit9: 57,
+	KeyA: 65,
+	KeyB: 66,
+	KeyC: 67,
+	KeyD: 68,
+	KeyE: 69,
+	KeyF: 70,
+	KeyG: 71,
+	KeyH: 72,
+	KeyI: 73,
+	KeyJ: 74,
+	KeyK: 75,
+	KeyL: 76,
+	KeyM: 77,
+	KeyN: 78,
+	KeyO: 79,
+	KeyP: 80,
+	KeyQ: 81,
+	KeyR: 82,
+	KeyS: 83,
+	KeyT: 84,
+	KeyU: 85,
+	KeyV: 86,
+	KeyW: 87,
+	KeyX: 88,
+	KeyY: 89,
+	KeyZ: 90,
+
+	Quote: 39,
+	Comma: 44,
+	Minus: 45,
+	Period: 46,
+	Slash: 47,
+	Semicolon: 59,
+	Equal: 61,
+	BracketLeft: 91,
+	Backslash: 92,
+	BracketRight: 93,
+	Backquote: 96,
 };
 
 export const KEY_ALIASES = {

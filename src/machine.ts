@@ -1,6 +1,7 @@
-import type { Nullable } from "@thi.ng/api";
+import type { Keys, Nullable } from "@thi.ng/api";
 import { swapLane13 } from "@thi.ng/binary";
 import { isString } from "@thi.ng/checks";
+import { Z2, Z3, Z4 } from "@thi.ng/strings";
 import {
 	circleClipped,
 	clipped,
@@ -13,9 +14,17 @@ import { fit as __fit, fitClamped } from "@thi.ng/math";
 import { canvasPixels, type RawPixelBuffer } from "@thi.ng/pixel";
 import { XsAdd } from "@thi.ng/random";
 import { resolve } from "@thi.ng/resolve-map";
-import { KEY_ALIASES, KEY_MAP, type Memory, type UserProgram } from "./api";
+import {
+	INV_KEY_MAP,
+	KEYS_TO_ASCII,
+	KEY_ALIASES,
+	KEY_MAP,
+	type Memory,
+	type UserProgram,
+} from "./api";
 import { DEFAULT_FONT } from "./font";
 import { SWEETIE16 } from "./palettes";
+import { DEFAULT_SPRITES } from "./sprites";
 
 export const MEM = resolve<Memory>({
 	RAM_SIZE: 0x10000,
@@ -89,6 +98,10 @@ const palette = u32.subarray(
 	(MEM.PALETTE + MEM.PALETTE_SIZE) >> 2
 );
 const fontData = u8.subarray(MEM.FONT_BASE, MEM.FONT_BASE + MEM.FONT_SIZE);
+const spriteData = u8.subarray(
+	MEM.SPRITE_BASE,
+	MEM.SPRITE_BASE + MEM.SPRITE_SIZE
+);
 
 const __rnd = new XsAdd();
 
@@ -109,6 +122,7 @@ export const reset = () => {
 	seed(Date.now());
 	palette.set(SWEETIE16);
 	fontData.set(DEFAULT_FONT);
+	spriteData.set(DEFAULT_SPRITES);
 	return canvas;
 };
 
@@ -198,8 +212,8 @@ const __updateKeys = (e: KeyboardEvent) => {
 	const addr = MEM.KEYS + (bit >> 3);
 	u8[addr] =
 		e.type === "keydown"
-			? setBit(u8[addr], bit & 7)
-			: clearBit(u8[addr], bit & 7);
+			? bitSet(u8[addr], bit & 7)
+			: bitClear(u8[addr], bit & 7);
 };
 
 // API
@@ -220,27 +234,52 @@ export const peek16 = (addr: number) => u16[addr >> 1];
 
 export const peek32 = (addr: number) => u32[addr >> 2];
 
-export const setBit = (x: number, bit: number) => x | (1 << bit);
+export const bitSet = (x: number, bit: number) => x | (1 << bit);
 
-export const bitSet = (x: number, bit: number) => !!(x & (1 << bit));
+export const bitClear = (x: number, bit: number) => x & ~(1 << bit);
 
-export const clearBit = (x: number, bit: number) => x & ~(1 << bit);
+export const bitTest = (x: number, bit: number) => !!(x & (1 << bit));
 
 export const memset = (addr: number, len: number, x: number) =>
 	u8.fill(x, addr, addr + len);
 
-export const keyp = (id: number | string) => {
+const __key = (id: number | string) => {
 	let bit: number;
 	if (isString(id)) {
 		bit = KEY_MAP[<keyof typeof KEY_MAP>id];
-		if (bit === undefined) return false;
+		if (bit === undefined) return;
 	} else {
 		bit = id;
 	}
-	const mask = 1 << (bit & 7);
-	bit >>= 3;
-	return u8[MEM.KEYS + bit] & mask & ~(u8[MEM.PKEYS + bit] & mask);
+	return [bit >> 3, 1 << (bit & 7)];
 };
+
+export const key = (id: number | string) => {
+	const info = __key(id);
+	return info ? !!(u8[MEM.KEYS + info[0]] & info[1]) : false;
+};
+
+export const keyp = (id: number | string) => {
+	const info = __key(id);
+	return info
+		? u8[MEM.KEYS + info[0]] &
+				info[1] &
+				~(u8[MEM.PKEYS + info[0]] & info[1])
+		: false;
+};
+
+export const allKeys = () => {
+	const keys: Keys<typeof KEY_MAP>[] = [];
+	for (let i = 0; i < 64; i++) {
+		if (bitTest(u8[MEM.KEYS + (i >> 3)], i & 7)) keys.push(INV_KEY_MAP[i]);
+	}
+	return keys;
+};
+
+export const allKeysA = () =>
+	allKeys()
+		.map((id) => KEYS_TO_ASCII[id])
+		.filter((x) => x !== undefined);
 
 export const code = () => {
 	const decoder = new TextDecoder();
@@ -328,12 +367,12 @@ export const rect = (
 			col
 		);
 	} else {
-		const x2 = x1 + w;
-		const y2 = y1 + h;
+		const x2 = x1 + w - 1;
+		const y2 = y1 + h - 1;
 		hline(x1, y1, w, col);
 		hline(x1, y2, w, col);
 		vline(x1, y1, h, col);
-		vline(x2, y1, h + 1, col);
+		vline(x2, y1, h, col);
 	}
 };
 
@@ -453,7 +492,8 @@ export const text = (
 		}
 		if (x >= WIDTH) continue;
 		let src = code * 9;
-		const charW = Math.min(fontData[src], WIDTH - x);
+		const meta = fontData[src];
+		const charW = Math.min(meta, WIDTH - x);
 		if (!charW) continue;
 		src++;
 		for (let j = 0, d = dest; j < h; j++, src++, d += STRIDE) {
@@ -471,6 +511,45 @@ export const text = (
 		dest += charW >> 1;
 		charW & 1 && !(x & 1) && dest++;
 	}
+};
+
+export const tile1 = (id: number, x: number, y: number, transparent = -1) => {
+	const { PIXELS, STRIDE, WIDTH, HEIGHT, SPRITE_BASE } = MEM;
+	if (x < -7 || y < -7 || x >= WIDTH || y >= HEIGHT) return;
+	let src4 = (SPRITE_BASE + id * 32) * 2;
+	let w = Math.min(8, WIDTH - x);
+	let h = Math.min(8, HEIGHT - y);
+	let k = 0;
+	if (y < 0) {
+		src4 -= y * 8;
+		h += y;
+		y = 0;
+	}
+	if (x < 0) {
+		w += x;
+		k -= x;
+		x = 0;
+	}
+	for (
+		let i = 0, dest4 = (PIXELS + y * STRIDE) * 2 + x;
+		i < h;
+		i++, dest4 += WIDTH, src4 += 8
+	) {
+		for (let j = 0; j < w; j++) {
+			const col = peek4(src4 + j + k);
+			col !== transparent && poke4(dest4 + j, col);
+		}
+	}
+};
+
+export const tiles = (
+	ids: number[],
+	x: number,
+	y: number,
+	transparent?: number
+) => {
+	for (let i = 0; i < ids.length; i++)
+		tile1(ids[i], x + i * 8, y, transparent);
 };
 
 export const hit = (
@@ -503,17 +582,24 @@ export const sqrt = Math.sqrt;
 export const min = Math.min;
 export const max = Math.max;
 
+export const pad2 = Z2;
+export const pad3 = Z3;
+export const pad4 = Z4;
+
 const __env = {
 	poke,
 	poke4,
 	peek,
 	peek4,
-	setBit,
 	bitSet,
-	clearBit,
+	bitTest,
+	bitClear,
 	memset,
 	code,
+	key,
 	keyp,
+	allKeys,
+	allKeysA,
 	cls,
 	setpixel,
 	getpixel,
@@ -526,6 +612,8 @@ const __env = {
 	scrollv,
 	cycle,
 	text,
+	tile1,
+	tiles,
 	hit,
 	hitm,
 	rnd,
@@ -540,4 +628,7 @@ const __env = {
 	sqrt,
 	min,
 	max,
+	pad2,
+	pad3,
+	pad4,
 };

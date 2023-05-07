@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<link
+			rel="icon"
+			href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">⛱️</text></svg>'
+		/>
+		<meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<meta http-equiv="X-UA-Compatible" content="ie=edge" />
+		<title>fantasy-console · @thi.ng/umbrella</title>
+		<link
+			href="https://unpkg.com/tachyons@4/css/tachyons.min.css"
+			rel="stylesheet"
+		/>
+		<style>
+			body {
+				background-color: #111;
+				display: grid;
+				grid-template-columns: 1fr 1fr 1fr;
+				grid-template-rows: 1fr 1fr 1fr;
+				gap: 0;
+				height: 100vh;
+				overflow: hidden;
+			}
+			canvas {
+				grid-column: 2;
+				grid-row: 2;
+				width: calc(240px * 5);
+				image-rendering: pixelated;
+			}
+		</style>
+	</head>
+	<body class="sans-serif">
+		<script type="module" src="/src/index.ts"></script>
+	</body>
+</html>

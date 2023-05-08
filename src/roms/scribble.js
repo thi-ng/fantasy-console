@@ -32,5 +32,5 @@ function TICK() {
 }
 
 function VSYNC() {
-	if (keyp("ArrowDown")) saveFrame("scribble");
+	if (keyp("Space")) saveFrame("scribble");
 }

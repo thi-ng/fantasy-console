@@ -1,6 +1,7 @@
 import type { Keys, Nullable } from "@thi.ng/api";
 import { swapLane13 } from "@thi.ng/binary";
-import { isString } from "@thi.ng/checks";
+import { isArrayLike, isString } from "@thi.ng/checks";
+import { downloadCanvas, downloadWithMime } from "@thi.ng/dl-asset";
 import { Z2, Z3, Z4 } from "@thi.ng/strings";
 import {
 	circleClipped,
@@ -58,7 +59,7 @@ export const MEM = resolve<Memory>({
 
 	KEYBOARD_BASE: ({ DEVICE_BASE }: Memory) => DEVICE_BASE + 32,
 	KEYS: ({ KEYBOARD_BASE }: Memory) => KEYBOARD_BASE,
-	PKEYS: ({ KEYBOARD_BASE }: Memory) => KEYBOARD_BASE + 8,
+	PKEYS: ({ KEYBOARD_BASE }: Memory) => KEYBOARD_BASE + 16,
 
 	VRAM_BASE: 0x1000,
 	VRAM_SIZE: ({
@@ -126,13 +127,13 @@ export const reset = () => {
 	return canvas;
 };
 
-export const tick = ({ tick, hsync, vsync }: UserProgram) => {
+export const tick = ({ TICK, HSYNC, VSYNC }: UserProgram) => {
 	const { ctx, img, data: pixels } = vramOut;
 	const { PIXELS, HEIGHT, STRIDE } = MEM;
 	__updateClock();
-	tick && tick();
+	TICK && TICK();
 	for (let i = 0, src = PIXELS, dest = 0; i < HEIGHT; i++) {
-		hsync && hsync(i);
+		HSYNC && HSYNC(i);
 		for (let x = 0; x < STRIDE; x++) {
 			const val = u8[src++];
 			pixels[dest++] = swapLane13(palette[val >> 4] | 0xff000000);
@@ -140,7 +141,8 @@ export const tick = ({ tick, hsync, vsync }: UserProgram) => {
 		}
 	}
 	ctx.putImageData(img, 0, 0);
-	vsync && vsync();
+	VSYNC && VSYNC();
+	// copy state
 	u8.copyWithin(MEM.PMOUSE_BASE, MEM.MOUSE_BASE, MEM.PMOUSE_BASE);
 	u8.copyWithin(MEM.PKEYS, MEM.KEYS, MEM.PKEYS);
 };
@@ -159,16 +161,19 @@ export const compile = (src: string) => {
 		(_, x) => `__mem.${x}`
 	);
 	console.log(src);
-	const prog = new Function(
+	const prog: UserProgram = new Function(
 		"__env,__mem",
 		`${src};
 	return {
-		tick: typeof tick !== "undefined" ? tick : undefined,
-		hsync: typeof hsync !== "undefined" ? hsync : undefined,
-		vsync: typeof vsync !== "undefined" ? vsync : undefined,
+		${["BOOT", "TICK", "HSYNC", "VSYNC"]
+			.map(
+				(id) =>
+					`${id}: typeof ${id} !== "undefined" ? ${id} : undefined,`
+			)
+			.join("\n")}
 	};`
 	)(__env, MEM);
-	console.log(prog);
+	// console.log(prog);
 	return prog;
 };
 
@@ -207,7 +212,7 @@ const __updateMouse = (e: MouseEvent) => {
 const __updateKeys = (e: KeyboardEvent) => {
 	const code = KEY_ALIASES[<keyof typeof KEY_ALIASES>e.code] || e.code;
 	const bit = KEY_MAP[<keyof typeof KEY_MAP>code];
-	// console.log(e.key, e.code, code, bit);
+	console.log(e.key, e.code, code, bit);
 	if (bit === undefined) return;
 	const addr = MEM.KEYS + (bit >> 3);
 	u8[addr] =
@@ -240,8 +245,24 @@ export const bitClear = (x: number, bit: number) => x & ~(1 << bit);
 
 export const bitTest = (x: number, bit: number) => !!(x & (1 << bit));
 
-export const memset = (addr: number, len: number, x: number) =>
-	u8.fill(x, addr, addr + len);
+export function memset(addr: number, data: ArrayLike<number>): void;
+export function memset(addr: number, len: number, x: number): void;
+export function memset(
+	addr: number,
+	len: number | ArrayLike<number>,
+	x?: number
+): void {
+	isArrayLike(len) ? u8.set(len, addr) : u8.fill(x!, addr, addr + len);
+}
+
+export const memget = (addr: number, len: number) => u8.slice(addr, addr + len);
+
+export const saveFrame = (name: string) => downloadCanvas(canvas, name);
+
+export const saveMemory = (name: string, addr: number, len: number) =>
+	downloadWithMime(name + ".json", JSON.stringify([...memget(addr, len)]), {
+		mime: "application/json",
+	});
 
 const __key = (id: number | string) => {
 	let bit: number;
@@ -513,6 +534,12 @@ export const text = (
 	}
 };
 
+export const textWidth = (str: string) =>
+	[...str].reduce(
+		(acc, x) => acc + u8[MEM.FONT_BASE + x.charCodeAt(0) * 9],
+		0
+	);
+
 export const tile1 = (id: number, x: number, y: number, transparent = -1) => {
 	const { PIXELS, STRIDE, WIDTH, HEIGHT, SPRITE_BASE } = MEM;
 	if (x < -7 || y < -7 || x >= WIDTH || y >= HEIGHT) return;
@@ -550,6 +577,49 @@ export const tiles = (
 ) => {
 	for (let i = 0; i < ids.length; i++)
 		tile1(ids[i], x + i * 8, y, transparent);
+};
+
+export const tile9 = (
+	id: number,
+	x: number,
+	y: number,
+	w: number,
+	h: number,
+	transparent?: number
+) => {
+	w--;
+	h--;
+	for (let i = 0; i <= h; i++) {
+		for (let j = 0; j <= w; j++) {
+			const k =
+				i == 0
+					? j == 0
+						? 0
+						: j == w
+						? 2
+						: 1
+					: i == h
+					? j == 0
+						? 6
+						: j == w
+						? 8
+						: 7
+					: j == 0
+					? 3
+					: j == w
+					? 5
+					: 4;
+			tile1(id + k, x + j * 8, y + i * 8, transparent);
+		}
+	}
+};
+
+export const tileFill = (id: number, transparent?: number) => {
+	for (let y = 0; y < MEM.HEIGHT; y += 8) {
+		for (let x = 0; x < MEM.WIDTH; x += 8) {
+			tile1(id, x, y, transparent);
+		}
+	}
 };
 
 export const hit = (
@@ -595,6 +665,9 @@ const __env = {
 	bitTest,
 	bitClear,
 	memset,
+	memget,
+	saveFrame,
+	saveMemory,
 	code,
 	key,
 	keyp,
@@ -612,8 +685,11 @@ const __env = {
 	scrollv,
 	cycle,
 	text,
+	textWidth,
 	tile1,
+	tile9,
 	tiles,
+	tileFill,
 	hit,
 	hitm,
 	rnd,

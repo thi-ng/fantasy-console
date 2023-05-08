@@ -1,63 +1,29 @@
-import { exposeGlobal } from "@thi.ng/expose";
-import { code, MEM, compile, reset, tick, keyp } from "./machine";
-import FONT_EDIT_SRC from "./font-edit.js?raw";
+import { MEM, code, compile, keyp, reset, tick } from "./machine";
+import FONT_EDIT_SRC from "./roms/font-edit.js?raw";
+import SCRIBBLE_SRC from "./roms/scribble.js?raw";
 
 document.body.appendChild(reset());
 
 // u32.set(RAYLEIGH, PALETTE >> 2);
 
-// for (let x = 0; x < MEM.WIDTH / 2; x++) {
-// 	POKE(MEM.PIXELS + x, (x & 0xf) * 0x11);
-// 	SETPIXEL(x * 2, 2, x & 0xf);
-// 	SETPIXEL(x * 2 + 1, 3, x & 0xf);
-// }
-
-// for (let i = 0; i < 1000; i++)
-// 	CIRCLE(RANDOM(WIDTH), RANDOM(HEIGHT), 8, i & 15, 1);
-
-// TEXT(
-// 	"!\"#$%&'()*+,-./\n0123456789\n:;<=>?@\nABCDEFGHIJKLMNOPQRSTUVWXYZ\n[\\]^_`{|}",
-// 	4,
-// 	4,
-// 	12
-// );
-
-// hsync(y) {
-//  POKE(PALETTE_BASE,y)
-//  POKE(PALETTE_BASE+1,y/2)
-//  POKE(PALETTE_BASE+2,y/8)
-// },
-
-const DEMO1 = compile(
-	`function tick() {
- if (peek(MOUSE_BUTTONS)&1 && !(peek(FRAME)%4)) {
-  cycle(PALETTE+4,PALETTE+PALETTE_SIZE-4,-4)
- }
- if (peek(MOUSE_BUTTONS)&2) scrollv(1)
- const x=peek(MOUSEX)
- const y=peek(MOUSEY)
- const r=fitc(dist(x,y,peek(PMOUSEX),peek(PMOUSEY)),0,10,2,8)
- const col=((peek(FRAME)/4)%14)+1
- circle(x,y,r,col,1)
- rect(0,0,WIDTH,7,15,1)
- text(\`\${pad2(peek(HOUR))}:\${pad2(peek(MINUTE))}:\${pad2(peek(SECOND))}\`,0,0,4,0)
- text(\`X: \${pad3(x)} Y: \${pad3(y)}\`,50,0,12,0,6)
- if (keyp("Space")) text(code(),1,8,12,0,7)
-}`
-);
-
+const SCRIBBLE = compile(SCRIBBLE_SRC);
 const FONT_EDITOR = compile(FONT_EDIT_SRC);
 
-let PROG = FONT_EDITOR;
+let PROG = SCRIBBLE;
 
 const update = () => {
+	let doReset = false;
 	if (keyp("F1")) {
-		PROG = DEMO1;
-		reset();
+		PROG = SCRIBBLE;
+		doReset = true;
 	}
 	if (keyp("F2")) {
 		PROG = FONT_EDITOR;
+		doReset = true;
+	}
+	if (doReset) {
 		reset();
+		PROG.BOOT && PROG.BOOT();
 	}
 	tick(PROG);
 	requestAnimationFrame(update);

@@ -109,36 +109,48 @@ export const KEY_MAP = {
 	KeyY: 34,
 	KeyZ: 35,
 
-	Comma: 36,
-	Period: 37,
-	Slash: 38,
-	Semicolon: 39,
-	Quote: 40,
-	BracketLeft: 41,
-	BracketRight: 42,
-	Minus: 43,
-	Equal: 44,
-	Backquote: 45,
-	Backslash: 46,
+	Space: 36,
+	Comma: 37,
+	Period: 38,
+	Slash: 39,
+	Semicolon: 40,
+	Quote: 41,
+	BracketLeft: 42,
+	BracketRight: 43,
+	Minus: 44,
+	Equal: 45,
+	Backquote: 46,
+	Backslash: 47,
 
-	Escape: 47,
-	Enter: 48,
-	Backspace: 49,
-	Delete: 50,
-	Tab: 51,
-	CapsLock: 52,
+	Escape: 48,
+	Enter: 49,
+	Backspace: 50,
+	Delete: 51,
+	Tab: 52,
+	CapsLock: 53,
 
-	F1: 53,
-	F2: 54,
-	F3: 55,
-	F4: 56,
-	F5: 57,
-	F6: 58,
+	ArrowLeft: 54,
+	ArrowRight: 55,
+	ArrowUp: 56,
+	ArrowDown: 57,
 
-	Shift: 60,
-	Control: 61,
-	Alt: 62,
-	Meta: 63,
+	F1: 58,
+	F2: 59,
+	F3: 60,
+	F4: 61,
+	F5: 62,
+	F6: 63,
+	F7: 64,
+	F8: 65,
+	F9: 66,
+	F10: 67,
+	F11: 68,
+	F12: 69,
+
+	Shift: 70,
+	Control: 71,
+	Alt: 72,
+	Meta: 73,
 };
 
 export const INV_KEY_MAP = Object.entries(KEY_MAP).reduce(
@@ -184,6 +196,7 @@ export const KEYS_TO_ASCII: Partial<Record<Keys<typeof KEY_MAP>, number>> = {
 	KeyY: 89,
 	KeyZ: 90,
 
+	Space: 32,
 	Quote: 39,
 	Comma: 44,
 	Minus: 45,
@@ -209,7 +222,8 @@ export const KEY_ALIASES = {
 };
 
 export interface UserProgram {
-	hsync?: Fn<number, void>;
-	vsync?: Fn0<void>;
-	tick?: Fn0<void>;
+	BOOT?: Fn0<void>;
+	HSYNC?: Fn<number, void>;
+	VSYNC?: Fn0<void>;
+	TICK?: Fn0<void>;
 }

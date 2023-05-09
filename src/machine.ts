@@ -75,8 +75,8 @@ export const MEM = resolve<Memory>({
 	PALETTE: ({ PIXELS, PIXEL_BUF_SIZE }: Memory) => PIXELS + PIXEL_BUF_SIZE,
 	FONT_BASE: ({ PALETTE, PALETTE_SIZE }: Memory) => PALETTE + PALETTE_SIZE,
 	SPRITE_BASE: ({ FONT_BASE, FONT_SIZE }: Memory) => FONT_BASE + FONT_SIZE,
-	WIDTH: 240,
-	HEIGHT: 135,
+	WIDTH: 320,
+	HEIGHT: 180,
 	PALETTE_SIZE: 16 * 4,
 	FONT_SIZE: 256 * 9,
 	SPRITE_SIZE: 256 * 4 * 8,
@@ -192,14 +192,14 @@ const __updateClock = () => {
 
 const __updateMouse = (e: MouseEvent) => {
 	const bounds = (<HTMLElement>e.target).getBoundingClientRect();
-	u8[MEM.MOUSEX] = fitClamped(
+	u16[MEM.MOUSEX >> 1] = fitClamped(
 		e.clientX,
 		bounds.left,
 		bounds.right,
 		0,
 		MEM.WIDTH
 	);
-	u8[MEM.MOUSEY] = fitClamped(
+	u16[MEM.MOUSEY >> 1] = fitClamped(
 		e.clientY,
 		bounds.top,
 		bounds.bottom,
@@ -229,6 +229,9 @@ export const poke4 = (addr4: number, x: number) => {
 	const addr = addr4 >> 1;
 	u8[addr] = addr4 & 1 ? (u8[addr] & 0xf0) | x : (u8[addr] & 0xf) | (x << 4);
 };
+export const poke16 = (addr: number, x: number) => (u16[addr >> 1] = x);
+
+export const poke32 = (addr: number, x: number) => (u32[addr >> 2] = x);
 
 export const peek = (addr: number) => u8[addr];
 
@@ -512,7 +515,7 @@ export const text = (
 			continue;
 		}
 		if (x >= WIDTH) continue;
-		let src = code * 9;
+		let src = (code << 3) + code; // aka * 9
 		const meta = fontData[src];
 		const charW = Math.min(meta, WIDTH - x);
 		if (!charW) continue;
@@ -589,26 +592,12 @@ export const tile9 = (
 ) => {
 	w--;
 	h--;
-	for (let i = 0; i <= h; i++) {
-		for (let j = 0; j <= w; j++) {
-			const k =
-				i == 0
-					? j == 0
-						? 0
-						: j == w
-						? 2
-						: 1
-					: i == h
-					? j == 0
-						? 6
-						: j == w
-						? 8
-						: 7
-					: j == 0
-					? 3
-					: j == w
-					? 5
-					: 4;
+	for (let i = 0, ii = 0; i <= h; i++, ii = i < h ? 3 : 6) {
+		for (
+			let j = 0, k = ii, k1 = ii + 1;
+			j <= w;
+			j++, k = j < w ? k1 : ii + 2
+		) {
 			tile1(id + k, x + j * 8, y + i * 8, transparent);
 		}
 	}
@@ -632,7 +621,7 @@ export const hit = (
 ) => mx >= x && mx < x + w && my >= y && my < y + h;
 
 export const hitm = (x: number, y: number, w: number, h: number) =>
-	hit(peek(MEM.MOUSEX), peek(MEM.MOUSEY), x, y, w, h);
+	hit(peek16(MEM.MOUSEX), peek16(MEM.MOUSEY), x, y, w, h);
 
 export const rnd = (max = 255) => __rnd.int() % max >>> 0;
 
@@ -659,8 +648,12 @@ export const pad4 = Z4;
 const __env = {
 	poke,
 	poke4,
+	poke16,
+	poke32,
 	peek,
 	peek4,
+	peek16,
+	peek32,
 	bitSet,
 	bitTest,
 	bitClear,

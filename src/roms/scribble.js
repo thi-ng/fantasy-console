@@ -18,10 +18,10 @@ function TICK() {
 		cycle(PALETTE + 4, PALETTE + PALETTE_SIZE - 4, -4);
 	}
 	if (peek(MOUSE_BUTTONS) & 2) scrollv(1);
-	const x = peek(MOUSEX);
-	const y = peek(MOUSEY);
+	const x = peek16(MOUSEX);
+	const y = peek16(MOUSEY);
 	const r = fitc(dist(x, y, peek(PMOUSEX), peek(PMOUSEY)), 0, 10, 2, 12);
-	const col = ((peek(FRAME) / 4) % 14) + 1;
+	const col = ((peek(FRAME) >> 2) % 14) + 1;
 	circle(x, y, r, col, 1);
 	rect(0, 0, WIDTH, 7, 15, 1);
 	const hour = pad2(peek(HOUR));

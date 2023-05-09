@@ -78,8 +78,8 @@ function TICK() {
 		cls(2);
 		flash--;
 	} else cls(15);
-	mx = peek(MOUSEX);
-	my = peek(MOUSEY);
+	mx = peek16(MOUSEX);
+	my = peek16(MOUSEY);
 	bt = peek(MOUSE_BUTTONS);
 	pbt = peek(PMOUSE_BUTTONS);
 	if (!modal) {

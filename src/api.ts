@@ -54,7 +54,9 @@ export interface Memory {
 	PIXELS: number;
 	PIXELS_END: number;
 	WIDTH: number;
+	W2: number;
 	HEIGHT: number;
+	H2: number;
 	STRIDE: number;
 	PIXEL_BUF_SIZE: number;
 	PALETTE: number;
@@ -226,4 +228,5 @@ export interface UserProgram {
 	HSYNC?: Fn<number, void>;
 	VSYNC?: Fn0<void>;
 	TICK?: Fn0<void>;
+	POST_TICK?: Fn0<void>;
 }

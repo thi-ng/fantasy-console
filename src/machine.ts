@@ -2,7 +2,6 @@ import type { Keys, Nullable } from "@thi.ng/api";
 import { swapLane13 } from "@thi.ng/binary";
 import { isArrayLike, isString } from "@thi.ng/checks";
 import { downloadCanvas, downloadWithMime } from "@thi.ng/dl-asset";
-import { Z2, Z3, Z4 } from "@thi.ng/strings";
 import {
 	circleClipped,
 	clipped,
@@ -11,10 +10,11 @@ import {
 	rows2d,
 	vlineClipped,
 } from "@thi.ng/grid-iterators";
-import { fit as __fit, fitClamped } from "@thi.ng/math";
+import { fit as __fit, mix as __mix, fitClamped } from "@thi.ng/math";
 import { canvasPixels, type RawPixelBuffer } from "@thi.ng/pixel";
 import { XsAdd } from "@thi.ng/random";
 import { resolve } from "@thi.ng/resolve-map";
+import { Z2, Z3, Z4 } from "@thi.ng/strings";
 import {
 	INV_KEY_MAP,
 	KEYS_TO_ASCII,
@@ -77,6 +77,8 @@ export const MEM = resolve<Memory>({
 	SPRITE_BASE: ({ FONT_BASE, FONT_SIZE }: Memory) => FONT_BASE + FONT_SIZE,
 	WIDTH: 320,
 	HEIGHT: 180,
+	W2: ({ WIDTH }: Memory) => WIDTH / 2,
+	H2: ({ HEIGHT }: Memory) => HEIGHT / 2,
 	PALETTE_SIZE: 16 * 4,
 	FONT_SIZE: 256 * 9,
 	SPRITE_SIZE: 256 * 4 * 8,
@@ -124,14 +126,18 @@ export const reset = () => {
 	palette.set(SWEETIE16);
 	fontData.set(DEFAULT_FONT);
 	spriteData.set(DEFAULT_SPRITES);
+	__updateClock();
+	u16.set([MEM.W2, MEM.H2], MEM.MOUSEX >> 1);
+	u16.set([MEM.W2, MEM.H2], MEM.PMOUSEX >> 1);
 	return canvas;
 };
 
-export const tick = ({ TICK, HSYNC, VSYNC }: UserProgram) => {
+export const tick = ({ TICK, POST_TICK, HSYNC, VSYNC }: UserProgram) => {
 	const { ctx, img, data: pixels } = vramOut;
 	const { PIXELS, HEIGHT, STRIDE } = MEM;
 	__updateClock();
 	TICK && TICK();
+	POST_TICK && POST_TICK();
 	for (let i = 0, src = PIXELS, dest = 0; i < HEIGHT; i++) {
 		HSYNC && HSYNC(i);
 		for (let x = 0; x < STRIDE; x++) {
@@ -158,21 +164,17 @@ export const compile = (src: string) => {
 	);
 	src = src.replace(
 		new RegExp(`\\b(${Object.keys(MEM).join("|")})\\b`, "g"),
-		(_, x) => `__mem.${x}`
+		(_, x) => `__const.${x}`
 	);
+	const exports = ["BOOT", "TICK", "HSYNC", "VSYNC"]
+		.map((id) => `${id}: typeof ${id} !== "undefined" ? ${id} : undefined,`)
+		.join("\n");
+	src = `${src}
+return {
+${exports}
+};`;
 	console.log(src);
-	const prog: UserProgram = new Function(
-		"__env,__mem",
-		`${src};
-	return {
-		${["BOOT", "TICK", "HSYNC", "VSYNC"]
-			.map(
-				(id) =>
-					`${id}: typeof ${id} !== "undefined" ? ${id} : undefined,`
-			)
-			.join("\n")}
-	};`
-	)(__env, MEM);
+	const prog: UserProgram = new Function("__env,__const", src)(__env, MEM);
 	// console.log(prog);
 	return prog;
 };
@@ -320,6 +322,8 @@ export const cls = (col: number) =>
 	u8.fill(col * 0x11, MEM.PIXELS, MEM.PIXELS_END);
 
 export const setpixel = (x: number, y: number, col: number) => {
+	x |= 0;
+	y |= 0;
 	if (x < 0 || x >= MEM.WIDTH || y < 0 || y >= MEM.HEIGHT) return;
 	const idx = MEM.PIXELS + y * MEM.STRIDE + (x >> 1);
 	u8[idx] = x & 1 ? (u8[idx] & 0xf0) | col : (u8[idx] & 0xf) | (col << 4);
@@ -331,6 +335,8 @@ export const __setpixel = (x: number, y: number, col: number) => {
 };
 
 export const getpixel = (x: number, y: number) => {
+	x |= 0;
+	y |= 0;
 	if (x < 0 || x >= MEM.WIDTH || y < 0 || y >= MEM.HEIGHT) return;
 	const val = u8[MEM.PIXELS + y * MEM.STRIDE + (x >> 1)];
 	return x & 1 ? val & 0xf : val >> 4;
@@ -492,9 +498,21 @@ export const text = (
 	y: number,
 	col: number,
 	shadow = -1,
+	align: "c" | "l" | "r" = "l",
 	lineHeight = 8
 ) => {
-	if (shadow !== -1) text(str, x + 1, y, shadow, -1, lineHeight);
+	x |= 0;
+	x |= 0;
+	switch (align) {
+		case "c":
+			x -= textWidth(str) >> 1;
+			break;
+		case "r":
+			x -= textWidth(str);
+			break;
+		default:
+	}
+	if (shadow !== -1) text(str, x + 1, y, shadow, -1, "l", lineHeight);
 	col &= 0xf;
 	const col4 = col << 4;
 	const origX = x;
@@ -623,12 +641,13 @@ export const hit = (
 export const hitm = (x: number, y: number, w: number, h: number) =>
 	hit(peek16(MEM.MOUSEX), peek16(MEM.MOUSEY), x, y, w, h);
 
-export const rnd = (max = 255) => __rnd.int() % max >>> 0;
+export const rnd = (max = 256) => __rnd.int() % max >>> 0;
 
 export const seed = (x: number) => __rnd.seed(x);
 
 export const fit = __fit;
 export const fitc = fitClamped;
+export const mix = __mix;
 
 export const dist = (x1: number, y1: number, x2: number, y2: number) =>
 	Math.hypot(x2 - x1, y2 - y1);
@@ -646,58 +665,59 @@ export const pad3 = Z3;
 export const pad4 = Z4;
 
 const __env = {
-	poke,
-	poke4,
-	poke16,
-	poke32,
-	peek,
-	peek4,
-	peek16,
-	peek32,
-	bitSet,
-	bitTest,
-	bitClear,
-	memset,
-	memget,
-	saveFrame,
-	saveMemory,
-	code,
-	key,
-	keyp,
+	abs,
 	allKeys,
 	allKeysA,
-	cls,
-	setpixel,
-	getpixel,
-	line,
-	hline,
-	vline,
+	bitClear,
+	bitSet,
+	bitTest,
 	circle,
-	ellipse,
-	rect,
-	scrollv,
+	cls,
+	code,
+	cos,
 	cycle,
+	dist,
+	ellipse,
+	fit,
+	fitc,
+	getpixel,
+	hit,
+	hitm,
+	hline,
+	key,
+	keyp,
+	line,
+	max,
+	mix,
+	memget,
+	memset,
+	min,
+	pad2,
+	pad3,
+	pad4,
+	peek,
+	peek16,
+	peek32,
+	peek4,
+	poke,
+	poke16,
+	poke32,
+	poke4,
+	pow,
+	rect,
+	rnd,
+	saveFrame,
+	saveMemory,
+	scrollv,
+	seed,
+	setpixel,
+	sin,
+	sqrt,
 	text,
 	textWidth,
 	tile1,
 	tile9,
-	tiles,
 	tileFill,
-	hit,
-	hitm,
-	rnd,
-	seed,
-	fit,
-	fitc,
-	dist,
-	abs,
-	sin,
-	cos,
-	pow,
-	sqrt,
-	min,
-	max,
-	pad2,
-	pad3,
-	pad4,
+	tiles,
+	vline,
 };

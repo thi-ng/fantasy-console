@@ -5,19 +5,19 @@ const samples = [
 	"Franz jagt im komplett\nverwahrlosten Taxi\nquer durch Bayern",
 ];
 
-const gridX = 108,
-	gridY = 3;
-const viewX = 3,
-	viewY = 3;
-const sampleX = viewX,
-	sampleY = viewY + 72;
-const saveX = viewX + 66,
-	saveY = viewY + 56;
-const okX = 108,
-	okY = 60;
+const gridX = 108;
+const gridY = 3;
+const viewX = 3;
+const viewY = 3;
+const sampleX = viewX;
+const sampleY = viewY + 72;
+const saveX = viewX + 66;
+const saveY = viewY + 56;
+const okX = 160 - (3 * 8) / 2;
+const okY = 92;
 let mx, my;
-let cx = -1,
-	cy = -1;
+let cx = -1;
+let cy = -1;
 
 let sel = 65;
 let sampleID = 0;
@@ -136,12 +136,13 @@ function TICK() {
 	button("SAVE", saveX, saveY, 4);
 
 	if (modal) {
+		// semi-transparent bg
 		tileFill(16, 1);
-		tile9(5, 80, 42, 10, 4, 1);
-		text("FONT SAVED.", 90, 50, 12);
+		// dialog box
+		tile9(5, 120, 74, 10, 4, 1);
+		text("FONT SAVED.", 160, 82, 12, -1, "c");
 		button("OK", okX, okY, 3);
 	}
 	// mouse cursor
 	tile1(0, mx - 1, my - 1, 1);
-	// tile1(1, 0, HEIGHT - 8);
 }

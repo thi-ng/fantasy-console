@@ -136,10 +136,10 @@ export const tick = ({ TICK, POST_TICK, HSYNC, VSYNC }: UserProgram) => {
 	const { ctx, img, data: pixels } = vramOut;
 	const { PIXELS, HEIGHT, STRIDE } = MEM;
 	__updateClock();
-	TICK && TICK();
-	POST_TICK && POST_TICK();
+	TICK?.();
+	POST_TICK?.();
 	for (let i = 0, src = PIXELS, dest = 0; i < HEIGHT; i++) {
-		HSYNC && HSYNC(i);
+		HSYNC?.(i);
 		for (let x = 0; x < STRIDE; x++) {
 			const val = u8[src++];
 			pixels[dest++] = swapLane13(palette[val >> 4] | 0xff000000);
@@ -147,7 +147,7 @@ export const tick = ({ TICK, POST_TICK, HSYNC, VSYNC }: UserProgram) => {
 		}
 	}
 	ctx.putImageData(img, 0, 0);
-	VSYNC && VSYNC();
+	VSYNC?.();
 	// copy state
 	u8.copyWithin(MEM.PMOUSE_BASE, MEM.MOUSE_BASE, MEM.PMOUSE_BASE);
 	u8.copyWithin(MEM.PKEYS, MEM.KEYS, MEM.PKEYS);

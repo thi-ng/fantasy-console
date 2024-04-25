@@ -1,4 +1,4 @@
-import type { Keys, Nullable } from "@thi.ng/api";
+import type { Keys, Nullable, UIntArray } from "@thi.ng/api";
 import { swapLane13 } from "@thi.ng/binary";
 import { isArrayLike, isString } from "@thi.ng/checks";
 import { downloadCanvas, downloadWithMime } from "@thi.ng/dl-asset";
@@ -250,6 +250,13 @@ export const bitClear = (x: number, bit: number) => x & ~(1 << bit);
 
 export const bitTest = (x: number, bit: number) => !!(x & (1 << bit));
 
+const __memset = (
+	buf: UIntArray,
+	addr: number,
+	len: number | ArrayLike<number>,
+	x?: number
+) => (isArrayLike(len) ? buf.set(len, addr) : buf.fill(x!, addr, addr + len));
+
 export function memset(addr: number, data: ArrayLike<number>): void;
 export function memset(addr: number, len: number, x: number): void;
 export function memset(
@@ -257,10 +264,36 @@ export function memset(
 	len: number | ArrayLike<number>,
 	x?: number
 ): void {
-	isArrayLike(len) ? u8.set(len, addr) : u8.fill(x!, addr, addr + len);
+	__memset(u8, addr, len, x);
+}
+
+export function memset16(addr: number, data: ArrayLike<number>): void;
+export function memset16(addr: number, len: number, x: number): void;
+export function memset16(
+	addr: number,
+	len: number | ArrayLike<number>,
+	x?: number
+): void {
+	__memset(u16, addr >> 1, len, x);
+}
+
+export function memset32(addr: number, data: ArrayLike<number>): void;
+export function memset32(addr: number, len: number, x: number): void;
+export function memset32(
+	addr: number,
+	len: number | ArrayLike<number>,
+	x?: number
+): void {
+	__memset(u32, addr >> 2, len, x);
 }
 
 export const memget = (addr: number, len: number) => u8.slice(addr, addr + len);
+export const memget16 = (addr: number, len: number) => (
+	(addr >>= 1), u16.slice(addr, addr + len)
+);
+export const memget32 = (addr: number, len: number) => (
+	(addr >>= 2), u32.slice(addr, addr + len)
+);
 
 export const saveFrame = (name: string) => downloadCanvas(canvas, name);
 
@@ -690,7 +723,11 @@ const __env = {
 	max,
 	mix,
 	memget,
+	memget16,
+	memget32,
 	memset,
+	memset16,
+	memset32,
 	min,
 	pad2,
 	pad3,

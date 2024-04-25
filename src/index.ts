@@ -33,14 +33,14 @@ const update = () => {
 			PROG = MENU[<keyof typeof MENU>key];
 			reset();
 			PROG.BOOT?.();
-			if (!PROG.POST_TICK) {
-				PROG.POST_TICK = () => tile1(1, 0, MEM.HEIGHT - 8);
-			}
 			break;
 		}
 	}
 	if (keyp("Space")) {
 		saveFrame(`fconsole-${Date.now()}`);
+	}
+	if (!PROG.POST_TICK) {
+		PROG.POST_TICK = () => tile1(1, 0, MEM.HEIGHT - 8);
 	}
 	tick(PROG);
 	requestAnimationFrame(update);

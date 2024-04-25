@@ -100,6 +100,7 @@ const palette = u32.subarray(
 	MEM.PALETTE >> 2,
 	(MEM.PALETTE + MEM.PALETTE_SIZE) >> 2
 );
+const currPalette = palette.slice();
 const fontData = u8.subarray(MEM.FONT_BASE, MEM.FONT_BASE + MEM.FONT_SIZE);
 const spriteData = u8.subarray(
 	MEM.SPRITE_BASE,
@@ -132,18 +133,26 @@ export const reset = () => {
 	return canvas;
 };
 
+const __swizzlePalette = () => {
+	for (let i = 0; i < 16; i++) currPalette[i] = swapLane13(palette[i]);
+};
+
 export const tick = ({ TICK, POST_TICK, HSYNC, VSYNC }: UserProgram) => {
 	const { ctx, img, data: pixels } = vramOut;
 	const { PIXELS, HEIGHT, STRIDE } = MEM;
 	__updateClock();
 	TICK?.();
 	POST_TICK?.();
+	__swizzlePalette();
 	for (let i = 0, src = PIXELS, dest = 0; i < HEIGHT; i++) {
-		HSYNC?.(i);
+		if (HSYNC) {
+			HSYNC(i);
+			__swizzlePalette();
+		}
 		for (let x = 0; x < STRIDE; x++) {
 			const val = u8[src++];
-			pixels[dest++] = swapLane13(palette[val >> 4] | 0xff000000);
-			pixels[dest++] = swapLane13(palette[val & 0xf] | 0xff000000);
+			pixels[dest++] = currPalette[val >> 4] | 0xff000000;
+			pixels[dest++] = currPalette[val & 0xf] | 0xff000000;
 		}
 	}
 	ctx.putImageData(img, 0, 0);

@@ -38,13 +38,9 @@ const ball = [
 	0x55, 0x50, 0x00, 0x00,
 ]
 
-const colors = [0xfe2ffe, 0x9900cc, 0x590098, 0x2c0068, 0x010230];
-
 function BOOT() {
 	memset(SPRITE_BASE + 20 * 32, ball);
-	for (let i = 0; i < colors.length; i++) {
-		poke32(PALETTE + (i + 1) * 4, colors[i]);
-	}
+	memset32(PALETTE + 4, [0xfe2ffe, 0x9900cc, 0x590098, 0x2c0068, 0x010230]);
 }
 
 function TICK() {

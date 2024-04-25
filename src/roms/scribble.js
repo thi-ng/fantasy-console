@@ -9,7 +9,7 @@ function HSYNC(y) {
 
 function TICK() {
 	if (keyp("KeyX")) cls();
-	if (peek(MOUSE_BUTTONS) & 1 && !(peek(FRAME) % 4)) {
+	if (peek(MOUSE_BUTTONS) & 1 && !(peek(FRAME) & 3)) {
 		cycle(PALETTE + 4, PALETTE + PALETTE_SIZE - 4, -4);
 	}
 	if (peek(MOUSE_BUTTONS) & 2) scrollv(1);

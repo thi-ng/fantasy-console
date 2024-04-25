@@ -55,4 +55,7 @@ function TICK() {
 		if (y + 8 > HEIGHT) y = 0;
 	}
 	text("CUSTOM FONT!", W2, 88, 12, 15, "c");
+	if (peek(MOUSE_BUTTONS) & 1 && !(peek(FRAME) & 3)) {
+		cycle(PALETTE + 4, PALETTE + PALETTE_SIZE - 4, -4);
+	}
 }

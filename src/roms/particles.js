@@ -38,14 +38,15 @@ function TICK() {
 		if (p.y >= HEIGHT) {
 			p = psys[i] = make(mx, my);
 		}
+		let { x, y, col } = p;
 		if (p.xl) {
-			setpixel(p.x, p.y, 12);
-			setpixel(p.x - 1, p.y, p.col);
-			setpixel(p.x + 1, p.y, p.col);
-			setpixel(p.x, p.y - 1, p.col);
-			setpixel(p.x, p.y + 1, p.col);
+			setpixel(x, y, 12);
+			setpixel(x - 1, y, col);
+			setpixel(x + 1, y, col);
+			setpixel(x, y - 1, col);
+			setpixel(x, y + 1, col);
 		} else {
-			setpixel(p.x, p.y, p.col);
+			setpixel(x, y, col);
 		}
 	}
 	text(`${psys.length} PARTICLES`, 8, 8, 12);

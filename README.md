@@ -3,6 +3,8 @@
 A TIC-80 inspired browser-based fantasy console originally developed for a
 workshop series @ Technical University Augsburg in 2022/23.
 
+![animated GIF of screenshots](fantasy-console.gif)
+
 Under a larger conceptual framing of permacomputing (in the widest sense), low
 resource usage and learnings from older low-powered hardware and the oftentimes
 ingenious solutions these limitations fostered, the project aimed to demostrate

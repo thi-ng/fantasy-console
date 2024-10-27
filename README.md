@@ -22,6 +22,8 @@ hardware (main RAM & VRAM), I/O registers (e.g. mouse & time/date) and provide a
 basic graphics API to create small graphical tools & experiments written in a
 subset of JavaScript.
 
+**The entire console (incl. all examples listed below) is only 33KB (12.9KB gzipped)!**
+
 ## Examples
 
 A pre-built version of the fantasy console is available online at:

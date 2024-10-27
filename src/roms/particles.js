@@ -50,4 +50,7 @@ function TICK() {
 		}
 	}
 	text(`${psys.length} PARTICLES`, 8, 8, 12);
+
+	// mouse cursor
+	tile1(0, mx - 1, my - 1, 1);
 }

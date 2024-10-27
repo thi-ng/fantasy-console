@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2022 Karsten Schmidt / thi.ng / @toxi
+Copyright (c) 2022-2024 Karsten Schmidt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

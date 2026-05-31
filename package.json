@@ -12,21 +12,21 @@
 		"preview": "vite preview --host --open"
 	},
 	"devDependencies": {
-		"typescript": "^5.6.3",
-		"vite": "^5.4.10",
+		"typescript": "^6.0.3",
+		"vite": "^8.0.14",
 		"vite-plugin-html": "^3.2.2"
 	},
 	"dependencies": {
-		"@thi.ng/api": "^8.11.11",
-		"@thi.ng/binary": "^3.4.34",
-		"@thi.ng/checks": "^3.6.13",
-		"@thi.ng/dl-asset": "^2.3.90",
-		"@thi.ng/grid-iterators": "^4.0.92",
-		"@thi.ng/math": "^5.11.11",
-		"@thi.ng/pixel": "^7.3.6",
-		"@thi.ng/random": "^4.1.2",
-		"@thi.ng/resolve-map": "^7.1.84",
-		"@thi.ng/strings": "^3.8.6"
+		"@thi.ng/api": "^8.12.25",
+		"@thi.ng/binary": "^3.6.14",
+		"@thi.ng/checks": "^3.9.5",
+		"@thi.ng/dl-asset": "^2.3.145",
+		"@thi.ng/grid-iterators": "^4.0.167",
+		"@thi.ng/math": "^5.15.14",
+		"@thi.ng/pixel": "^7.5.34",
+		"@thi.ng/random": "^4.1.51",
+		"@thi.ng/resolve-map": "^7.1.137",
+		"@thi.ng/strings": "^3.12.7"
 	},
 	"browsersList": [
 		"last 3 chrome versions"
